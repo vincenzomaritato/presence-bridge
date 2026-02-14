@@ -1,0 +1,106 @@
+name: publish-package-indexes
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-indexes:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PACKAGE_REPOS_TOKEN }}
+      HOMEBREW_TAP_REPO: ${{ secrets.HOMEBREW_TAP_REPO }}
+      SCOOP_BUCKET_REPO: ${{ secrets.SCOOP_BUCKET_REPO }}
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      SOURCE_REPO: ${{ github.repository }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Validate package token
+        run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "PACKAGE_REPOS_TOKEN is not configured; skipping.";
+            exit 0;
+          fi
+
+      - name: Read release asset URLs
+        id: assets
+        run: |
+          set -euo pipefail
+
+          release_json="$(gh api repos/${SOURCE_REPO}/releases/tags/${RELEASE_TAG})"
+
+          mac_sha_url="$(echo "$release_json" | jq -r '.assets[] | select(.name=="presence-bridge-macos-x86_64.tar.gz.sha256") | .browser_download_url')"
+          win_sha_url="$(echo "$release_json" | jq -r '.assets[] | select(.name=="presence-bridge-windows-x86_64.zip.sha256") | .browser_download_url')"
+
+          if [ -z "$mac_sha_url" ] || [ "$mac_sha_url" = "null" ]; then
+            echo "Missing macOS checksum asset" >&2
+            exit 1
+          fi
+          if [ -z "$win_sha_url" ] || [ "$win_sha_url" = "null" ]; then
+            echo "Missing Windows checksum asset" >&2
+            exit 1
+          fi
+
+          mac_sha="$(curl -fsSL "$mac_sha_url" | awk '{print $1}')"
+          win_sha="$(curl -fsSL "$win_sha_url" | awk '{print $1}')"
+
+          version="${RELEASE_TAG#v}"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "mac_sha=$mac_sha" >> "$GITHUB_OUTPUT"
+          echo "win_sha=$win_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Render package index files
+        run: |
+          set -euo pipefail
+          scripts/update-homebrew-formula.sh "${{ steps.assets.outputs.version }}" "${{ steps.assets.outputs.mac_sha }}"
+          scripts/update-scoop-manifest.sh "${{ steps.assets.outputs.version }}" "${{ steps.assets.outputs.win_sha }}"
+
+      - name: Update Homebrew tap
+        if: env.HOMEBREW_TAP_REPO != ''
+        run: |
+          set -euo pipefail
+
+          workdir="$(mktemp -d)"
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${HOMEBREW_TAP_REPO}.git" "$workdir"
+
+          mkdir -p "$workdir/Formula"
+          cp packaging/homebrew/presence-bridge.rb "$workdir/Formula/presence-bridge.rb"
+
+          cd "$workdir"
+          if git diff --quiet -- Formula/presence-bridge.rb; then
+            echo "No Homebrew changes"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/presence-bridge.rb
+          git commit -m "chore: update presence-bridge formula to ${{ steps.assets.outputs.version }}"
+          git push
+
+      - name: Update Scoop bucket
+        if: env.SCOOP_BUCKET_REPO != ''
+        run: |
+          set -euo pipefail
+
+          workdir="$(mktemp -d)"
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${SCOOP_BUCKET_REPO}.git" "$workdir"
+
+          mkdir -p "$workdir/bucket"
+          cp packaging/scoop/presence-bridge.json "$workdir/bucket/presence-bridge.json"
+
+          cd "$workdir"
+          if git diff --quiet -- bucket/presence-bridge.json; then
+            echo "No Scoop changes"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bucket/presence-bridge.json
+          git commit -m "chore: update presence-bridge scoop manifest to ${{ steps.assets.outputs.version }}"
+          git push

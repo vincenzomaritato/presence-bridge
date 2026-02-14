@@ -147,6 +147,7 @@ cargo test --workspace
 - Homebrew template formula: `packaging/homebrew/presence-bridge.rb.tmpl`
 - Scoop template manifest: `packaging/scoop/presence-bridge.json.tmpl`
 - Linux systemd unit: `packaging/linux/presence-bridge.service`
+- Automatic package index publish workflow: `.github/workflows/publish-package-indexes.yml`
 
 Generate Homebrew formula from release checksum:
 
@@ -159,6 +160,18 @@ Generate Scoop manifest from release checksum:
 ```bash
 scripts/update-scoop-manifest.sh 0.1.0 <sha256-of-presence-bridge-windows-x86_64.zip>
 ```
+
+Automate Homebrew/Scoop updates after each GitHub Release:
+
+1. Create a Homebrew tap repo (for example `vincenzomaritato/homebrew-tap`) and/or a Scoop bucket repo (for example `vincenzomaritato/scoop-bucket`).
+2. Add repository secrets in this project:
+   - `PACKAGE_REPOS_TOKEN`: PAT with write access to the tap/bucket repos.
+   - `HOMEBREW_TAP_REPO`: `owner/repo` of tap repository.
+   - `SCOOP_BUCKET_REPO`: `owner/repo` of Scoop bucket repository.
+3. Publish a release (`v*` tag). The workflow will:
+   - Read checksums from release assets.
+   - Render formula/manifest from templates.
+   - Commit and push updates to tap/bucket repos.
 
 ## License
 
