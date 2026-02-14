@@ -1,0 +1,15 @@
+class PresenceBridge < Formula
+  desc "Cross-platform daemon: now playing to Discord Rich Presence"
+  homepage "https://github.com/vincenzomaritato/presence-bridge"
+  url "https://github.com/vincenzomaritato/presence-bridge/releases/download/v__VERSION__/presence-bridge-macos-x86_64.tar.gz"
+  sha256 "__SHA256__"
+  license "Apache-2.0"
+
+  def install
+    bin.install "presence-bridge"
+  end
+
+  test do
+    assert_match "presence-bridge", shell_output("#{bin}/presence-bridge --help")
+  end
+end

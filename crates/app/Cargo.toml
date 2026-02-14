@@ -3,6 +3,10 @@ name = "presence-bridge"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
+description = "Cross-platform daemon: now playing to Discord Rich Presence"
+repository = "https://github.com/vincenzomaritato/presence-bridge"
+homepage = "https://github.com/vincenzomaritato/presence-bridge"
+readme = "../../README.md"
 
 [dependencies]
 anyhow.workspace = true
@@ -17,3 +21,27 @@ presence-bridge-discord-rpc = { path = "../discord_rpc" }
 presence-bridge-engine = { path = "../engine" }
 presence-bridge-providers = { path = "../providers" }
 dirs = "6"
+
+[package.metadata.deb]
+maintainer = "Vincenzo Maritato"
+copyright = "2026, presence-bridge contributors"
+license-file = ["../../LICENSE", "4"]
+depends = "$auto"
+section = "utils"
+priority = "optional"
+assets = [
+  ["target/release/presence-bridge", "usr/bin/presence-bridge", "755"],
+  ["../../README.md", "usr/share/doc/presence-bridge/README.md", "644"],
+  ["../../LICENSE", "usr/share/doc/presence-bridge/LICENSE", "644"],
+  ["../../packaging/linux/presence-bridge.service", "lib/systemd/user/presence-bridge.service", "644"],
+]
+
+[package.metadata.generate-rpm]
+summary = "Cross-platform daemon: now playing to Discord Rich Presence"
+license = "Apache-2.0"
+assets = [
+  { source = "target/release/presence-bridge", dest = "/usr/bin/presence-bridge", mode = "755" },
+  { source = "../../README.md", dest = "/usr/share/doc/presence-bridge/README.md", mode = "644", doc = true },
+  { source = "../../LICENSE", dest = "/usr/share/licenses/presence-bridge/LICENSE", mode = "644", doc = true },
+  { source = "../../packaging/linux/presence-bridge.service", dest = "/usr/lib/systemd/user/presence-bridge.service", mode = "644" },
+]

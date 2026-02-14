@@ -1,0 +1,13 @@
+[Unit]
+Description=presence-bridge daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/presence-bridge run
+Restart=always
+RestartSec=5
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=default.target

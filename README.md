@@ -140,6 +140,25 @@ cargo test --workspace
 
 - CI builds and tests on macOS, Windows, Linux (`.github/workflows/ci.yml`).
 - Tagging `v*` triggers packaged release artifacts + SHA256 checksums (`.github/workflows/release.yml`).
+- Linux release also includes `.deb` and `.rpm` artifacts.
+
+## Package Channels
+
+- Homebrew template formula: `packaging/homebrew/presence-bridge.rb.tmpl`
+- Scoop template manifest: `packaging/scoop/presence-bridge.json.tmpl`
+- Linux systemd unit: `packaging/linux/presence-bridge.service`
+
+Generate Homebrew formula from release checksum:
+
+```bash
+scripts/update-homebrew-formula.sh 0.1.0 <sha256-of-presence-bridge-macos-x86_64.tar.gz>
+```
+
+Generate Scoop manifest from release checksum:
+
+```bash
+scripts/update-scoop-manifest.sh 0.1.0 <sha256-of-presence-bridge-windows-x86_64.zip>
+```
 
 ## License
 
