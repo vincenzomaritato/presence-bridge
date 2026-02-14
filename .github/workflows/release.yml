@@ -5,26 +5,15 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build-release:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            artifact_name: presence-bridge-linux-x86_64
-            bin_path: target/release/presence-bridge
-            archive_cmd: tar -czf ${{ github.workspace }}/dist/presence-bridge-linux-x86_64.tar.gz -C target/release presence-bridge
-            checksum_cmd: sha256sum ${{ github.workspace }}/dist/presence-bridge-linux-x86_64.tar.gz > ${{ github.workspace }}/dist/presence-bridge-linux-x86_64.tar.gz.sha256
-          - os: macos-latest
-            artifact_name: presence-bridge-macos-x86_64
-            bin_path: target/release/presence-bridge
-            archive_cmd: tar -czf ${{ github.workspace }}/dist/presence-bridge-macos-x86_64.tar.gz -C target/release presence-bridge
-            checksum_cmd: shasum -a 256 ${{ github.workspace }}/dist/presence-bridge-macos-x86_64.tar.gz > ${{ github.workspace }}/dist/presence-bridge-macos-x86_64.tar.gz.sha256
-          - os: windows-latest
-            artifact_name: presence-bridge-windows-x86_64
-            bin_path: target/release/presence-bridge.exe
-
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -40,6 +29,7 @@ jobs:
       - name: Build Linux packages (.deb / .rpm)
         if: runner.os == 'Linux'
         run: |
+          set -euo pipefail
           cargo install cargo-deb --locked
           cargo install cargo-generate-rpm --locked
           mkdir -p dist
@@ -48,14 +38,23 @@ jobs:
           sha256sum dist/presence-bridge-linux-x86_64.deb > dist/presence-bridge-linux-x86_64.deb.sha256
           sha256sum dist/presence-bridge-linux-x86_64.rpm > dist/presence-bridge-linux-x86_64.rpm.sha256
 
-      - name: Package (unix)
-        if: runner.os != 'Windows'
+      - name: Package macOS
+        if: runner.os == 'macOS'
         run: |
+          set -euo pipefail
           mkdir -p dist
-          ${{ matrix.archive_cmd }}
-          ${{ matrix.checksum_cmd }}
+          tar -czf dist/presence-bridge-macos-x86_64.tar.gz -C target/release presence-bridge
+          shasum -a 256 dist/presence-bridge-macos-x86_64.tar.gz > dist/presence-bridge-macos-x86_64.tar.gz.sha256
 
-      - name: Package (windows)
+      - name: Package Linux
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          tar -czf dist/presence-bridge-linux-x86_64.tar.gz -C target/release presence-bridge
+          sha256sum dist/presence-bridge-linux-x86_64.tar.gz > dist/presence-bridge-linux-x86_64.tar.gz.sha256
+
+      - name: Package Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -64,8 +63,26 @@ jobs:
           $h = Get-FileHash dist/presence-bridge-windows-x86_64.zip -Algorithm SHA256
           "$($h.Hash.ToLower())  presence-bridge-windows-x86_64.zip" | Out-File -FilePath dist/presence-bridge-windows-x86_64.zip.sha256 -Encoding ascii
 
-      - name: Upload release assets
+      - name: Upload job artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ runner.os }}
+          path: dist/*
+
+  publish-release:
+    needs: build-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/*
+          files: dist/*
+          fail_on_unmatched_files: true
