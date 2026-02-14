@@ -1,0 +1,60 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: presence-bridge-linux-x86_64
+            bin_path: target/release/presence-bridge
+            archive_cmd: tar -czf ${{ github.workspace }}/dist/presence-bridge-linux-x86_64.tar.gz -C target/release presence-bridge
+            checksum_cmd: sha256sum ${{ github.workspace }}/dist/presence-bridge-linux-x86_64.tar.gz > ${{ github.workspace }}/dist/presence-bridge-linux-x86_64.tar.gz.sha256
+          - os: macos-latest
+            artifact_name: presence-bridge-macos-x86_64
+            bin_path: target/release/presence-bridge
+            archive_cmd: tar -czf ${{ github.workspace }}/dist/presence-bridge-macos-x86_64.tar.gz -C target/release presence-bridge
+            checksum_cmd: shasum -a 256 ${{ github.workspace }}/dist/presence-bridge-macos-x86_64.tar.gz > ${{ github.workspace }}/dist/presence-bridge-macos-x86_64.tar.gz.sha256
+          - os: windows-latest
+            artifact_name: presence-bridge-windows-x86_64
+            bin_path: target/release/presence-bridge.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release
+        run: cargo build --workspace --release
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          ${{ matrix.archive_cmd }}
+          ${{ matrix.checksum_cmd }}
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Compress-Archive -Path target/release/presence-bridge.exe -DestinationPath dist/presence-bridge-windows-x86_64.zip -Force
+          $h = Get-FileHash dist/presence-bridge-windows-x86_64.zip -Algorithm SHA256
+          "$($h.Hash.ToLower())  presence-bridge-windows-x86_64.zip" | Out-File -FilePath dist/presence-bridge-windows-x86_64.zip.sha256 -Encoding ascii
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
