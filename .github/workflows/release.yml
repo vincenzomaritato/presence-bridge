@@ -23,8 +23,22 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build release
-        run: cargo build --workspace --release
+      - name: Build release binary (app crate)
+        run: cargo build --release --manifest-path crates/app/Cargo.toml
+
+      - name: Verify release binary path (unix)
+        if: runner.os != 'Windows'
+        run: |
+          set -euo pipefail
+          test -f target/release/presence-bridge
+
+      - name: Verify release binary path (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "target/release/presence-bridge.exe")) {
+            throw "target/release/presence-bridge.exe not found"
+          }
 
       - name: Build Linux packages (.deb / .rpm)
         if: runner.os == 'Linux'

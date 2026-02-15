@@ -208,8 +208,8 @@ macOS Apple Music permission:
 
 Workflows:
 
-- `/Users/vmaritato/Desktop/Open Source/presence-bridge/.github/workflows/ci.yml`
-- `/Users/vmaritato/Desktop/Open Source/presence-bridge/.github/workflows/release.yml`
+- [`ci.yml`](.github/workflows/ci.yml)
+- [`release.yml`](.github/workflows/release.yml)
 
 ---
 
@@ -217,15 +217,15 @@ Workflows:
 
 - Issues: [github.com/vincenzomaritato/presence-bridge/issues](https://github.com/vincenzomaritato/presence-bridge/issues)
 - Releases: [github.com/vincenzomaritato/presence-bridge/releases](https://github.com/vincenzomaritato/presence-bridge/releases)
-- Security: `/Users/vmaritato/Desktop/Open Source/presence-bridge/SECURITY.md`
-- Contributing: `/Users/vmaritato/Desktop/Open Source/presence-bridge/CONTRIBUTING.md`
-- Code of Conduct: `/Users/vmaritato/Desktop/Open Source/presence-bridge/CODE_OF_CONDUCT.md`
+- Security: [`SECURITY.md`](SECURITY.md)
+- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Code of Conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 
 ---
 
 ## License
 
-Apache-2.0. See `/Users/vmaritato/Desktop/Open Source/presence-bridge/LICENSE`.
+Apache-2.0. See [`LICENSE`](LICENSE).
 
 ---
 
@@ -235,6 +235,6 @@ Apache-2.0. See `/Users/vmaritato/Desktop/Open Source/presence-bridge/LICENSE`.
   </sub>
   <br/>
   <sub>
-    Copyright (c) presence-bridge contributors.
+    Built with espresso, stubbornness, and a lot of heart in Italy. Visit <a href="https://vmaritato.com">vmaritato.com</a>.
   </sub>
 </p>
