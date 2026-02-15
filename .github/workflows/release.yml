@@ -24,20 +24,20 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build release binary (app crate)
-        run: cargo build --release --manifest-path crates/app/Cargo.toml --target-dir crates/app/target
+        run: cargo build --release -p presence-bridge
 
       - name: Verify release binary path (unix)
         if: runner.os != 'Windows'
         run: |
           set -euo pipefail
-          test -f crates/app/target/release/presence-bridge
+          test -f target/release/presence-bridge
 
       - name: Verify release binary path (windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          if (-not (Test-Path "crates/app/target/release/presence-bridge.exe")) {
-            throw "crates/app/target/release/presence-bridge.exe not found"
+          if (-not (Test-Path "target/release/presence-bridge.exe")) {
+            throw "target/release/presence-bridge.exe not found"
           }
 
       - name: Build Linux packages (.deb / .rpm)
@@ -47,7 +47,7 @@ jobs:
           cargo install cargo-deb --locked
           cargo install cargo-generate-rpm --locked
           mkdir -p dist
-          cargo deb --manifest-path crates/app/Cargo.toml --no-build --output dist/presence-bridge-linux-x86_64.deb
+          (cd crates/app && cargo deb --no-build --output ../../dist/presence-bridge-linux-x86_64.deb)
           (cd crates/app && cargo generate-rpm --output ../../dist/presence-bridge-linux-x86_64.rpm)
           sha256sum dist/presence-bridge-linux-x86_64.deb > dist/presence-bridge-linux-x86_64.deb.sha256
           sha256sum dist/presence-bridge-linux-x86_64.rpm > dist/presence-bridge-linux-x86_64.rpm.sha256
@@ -57,7 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          tar -czf dist/presence-bridge-macos-x86_64.tar.gz -C crates/app/target/release presence-bridge
+          tar -czf dist/presence-bridge-macos-x86_64.tar.gz -C target/release presence-bridge
           shasum -a 256 dist/presence-bridge-macos-x86_64.tar.gz > dist/presence-bridge-macos-x86_64.tar.gz.sha256
 
       - name: Package Linux
@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          tar -czf dist/presence-bridge-linux-x86_64.tar.gz -C crates/app/target/release presence-bridge
+          tar -czf dist/presence-bridge-linux-x86_64.tar.gz -C target/release presence-bridge
           sha256sum dist/presence-bridge-linux-x86_64.tar.gz > dist/presence-bridge-linux-x86_64.tar.gz.sha256
 
       - name: Package Windows
@@ -73,7 +73,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path dist -Force | Out-Null
-          Compress-Archive -Path crates/app/target/release/presence-bridge.exe -DestinationPath dist/presence-bridge-windows-x86_64.zip -Force
+          Compress-Archive -Path target/release/presence-bridge.exe -DestinationPath dist/presence-bridge-windows-x86_64.zip -Force
           $h = Get-FileHash dist/presence-bridge-windows-x86_64.zip -Algorithm SHA256
           "$($h.Hash.ToLower())  presence-bridge-windows-x86_64.zip" | Out-File -FilePath dist/presence-bridge-windows-x86_64.zip.sha256 -Encoding ascii
 
