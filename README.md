@@ -1,54 +1,124 @@
-# presence-bridge
+<h1 align="center">presence-bridge</h1>
 
-Cross-platform Rust daemon that bridges **Now Playing** metadata to **Discord Rich Presence**.
+<p align="center">
+  Native cross-platform bridge from <b>Now Playing</b> to <b>Discord Rich Presence</b>.
+  <br/>
+  <sub>Built in Rust. Minimal overhead. Production-focused.</sub>
+</p>
 
-Pipeline: `Now Playing -> Event Engine -> Discord RPC`
+<p align="center">
+  <a href="https://github.com/vincenzomaritato/presence-bridge/actions/workflows/ci.yml">
+    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/vincenzomaritato/presence-bridge/ci.yml?branch=main&label=CI" />
+  </a>
+  <a href="https://github.com/vincenzomaritato/presence-bridge/releases">
+    <img alt="Release" src="https://img.shields.io/github/v/release/vincenzomaritato/presence-bridge" />
+  </a>
+  <a href="/LICENSE">
+    <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue" />
+  </a>
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-success" />
+</p>
 
-## Features
+---
 
-- Native, non-Electron architecture.
-- Smart scheduling (no fixed 1Hz Discord updates).
-- Providers:
-  - macOS: Apple Music (Music.app) via JXA + `osascript -l JavaScript`.
-  - Windows: GSMTC (`Windows.Media.Control`).
-  - Linux: MPRIS via DBus (`org.mpris.MediaPlayer2.*`).
-- Discord RPC over local IPC (Unix socket / named pipe) with websocket fallback.
-- Activity type set to **Listening** (instead of generic game activity).
-- Diff engine with debounce + throttle.
-- Stable `startTimestamp` per track.
-- Configurable TOML + hot reload (`SIGHUP` on Unix, file polling fallback).
-- Structured logging (`tracing`).
-- CLI: `run`, `doctor`, `status`, `config init`.
-- Unit tests for diff engine + URL builders.
+## What Is It
 
-## Install
+`presence-bridge` is a native daemon that publishes your active media session to Discord Rich Presence.
 
-```bash
-git clone https://github.com/your-org/presence-bridge.git
-cd presence-bridge
-cargo build --release
+Pipeline:
+
+```text
+Now Playing Provider -> Event Engine -> Discord RPC
 ```
 
-Binary path:
-- macOS/Linux: `target/release/presence-bridge`
-- Windows: `target/release/presence-bridge.exe`
+Supported providers:
 
-## Configuration
+- macOS: Apple Music via JXA (`osascript -l JavaScript`)
+- Windows: GSMTC (`Windows.Media.Control`)
+- Linux: MPRIS (`org.mpris.MediaPlayer2.*` via DBus)
 
-Initialize default config:
+---
+
+## Quick Start (For Normal Users)
+
+1. Create a Discord app at [Discord Developer Portal](https://discord.com/developers/applications).
+2. Copy your **Application ID**.
+3. Initialize config:
 
 ```bash
 cargo run -- config init
 ```
 
-Default path:
-- macOS: `~/Library/Application Support/presence-bridge/config.toml`
-- Linux: `~/.config/presence-bridge/config.toml`
-- Windows: `%APPDATA%\presence-bridge\config.toml`
-
-Example:
+4. Set this value in your config:
 
 ```toml
+discord_app_id = "YOUR_DISCORD_APPLICATION_ID"
+```
+
+5. Run:
+
+```bash
+cargo run -- run
+```
+
+Quick checks:
+
+```bash
+cargo run -- doctor
+cargo run -- status
+```
+
+Default config path:
+
+- macOS: `~/Library/Application Support/presence-bridge/config.toml`
+- Linux: `~/.config/presence-bridge/config.toml`
+- Windows: `%APPDATA%\\presence-bridge\\config.toml`
+
+---
+
+## Download (Direct)
+
+<p align="center">
+  <a href="https://github.com/vincenzomaritato/presence-bridge/releases/latest/download/presence-bridge-macos-x86_64.tar.gz">
+    <img alt="Download macOS" src="https://img.shields.io/badge/Download-macOS-black?style=for-the-badge&logo=apple" />
+  </a>
+  <a href="https://github.com/vincenzomaritato/presence-bridge/releases/latest/download/presence-bridge-windows-x86_64.zip">
+    <img alt="Download Windows" src="https://img.shields.io/badge/Download-Windows-0078D6?style=for-the-badge&logo=windows" />
+  </a>
+  <a href="https://github.com/vincenzomaritato/presence-bridge/releases/latest/download/presence-bridge-linux-x86_64.tar.gz">
+    <img alt="Download Linux Tar" src="https://img.shields.io/badge/Download-Linux_TAR-FCC624?style=for-the-badge&logo=linux&logoColor=black" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/vincenzomaritato/presence-bridge/releases/latest/download/presence-bridge-linux-x86_64.deb">
+    <img alt="Download Debian" src="https://img.shields.io/badge/Linux-.deb-A81D33?style=for-the-badge&logo=debian" />
+  </a>
+  <a href="https://github.com/vincenzomaritato/presence-bridge/releases/latest/download/presence-bridge-linux-x86_64.rpm">
+    <img alt="Download RPM" src="https://img.shields.io/badge/Linux-.rpm-1793D1?style=for-the-badge&logo=redhat" />
+  </a>
+  <a href="https://github.com/vincenzomaritato/presence-bridge/releases/latest">
+    <img alt="All releases" src="https://img.shields.io/badge/All-Release_Assets-2ea44f?style=for-the-badge&logo=github" />
+  </a>
+</p>
+
+---
+
+## Why It Is Better
+
+- No Electron dependency
+- Smart updates (no 1Hz Discord spam)
+- Stable track timestamps
+- Debounce for fast play/pause jitter
+- Reliable reconnect strategy
+- Structured logs + diagnostics
+
+---
+
+## Configuration
+
+```toml
+schema_version = 1
 discord_app_id = "YOUR_DISCORD_APP_ID"
 provider_priority = ["apple_music", "windows", "mpris"]
 enable_buttons = true
@@ -69,110 +139,102 @@ small_play_image = "play"
 small_pause_image = "pause"
 ```
 
-`discord_app_id` is required. Create an app in the Discord Developer Portal and copy its **Application ID**.
-
-Assets are optional. If not uploaded, text + buttons still work.
-
-## Usage
-
-Run daemon:
-
-```bash
-cargo run -- run
-```
-
-Doctor diagnostics:
-
-```bash
-cargo run -- doctor
-```
-
-Status (single snapshot):
-
-```bash
-cargo run -- status
-```
-
-Reload config without restart:
-- Unix: `kill -HUP <pid>`
-- Windows: edit config file, watcher picks it up.
-
 Environment overrides:
+
 - `PRESENCE_BRIDGE_DISCORD_APP_ID`
 - `PRESENCE_BRIDGE_LOG_LEVEL`
 - `PRESENCE_BRIDGE_ENABLE_BUTTONS` (`true` / `false`)
 
-## Scheduler policy
+---
 
-- `Playing`: poll provider every ~1s, send Discord updates at most every `presence_min_update_ms` (default 15s), unless track/state changed.
-- `Paused`: poll every ~7s.
-- `Stopped/no session`: poll every ~30s.
+## CLI
 
-This keeps CPU usage low while preserving responsive transitions.
+```bash
+presence-bridge run
+presence-bridge doctor
+presence-bridge status
+presence-bridge config init
+```
 
-## macOS permissions (Apple Music)
+With Cargo:
 
-If provider fails with automation/script errors:
+```bash
+cargo run -- run
+cargo run -- doctor
+cargo run -- status
+cargo run -- config init
+```
 
-1. Open **System Settings**.
-2. Go to **Privacy & Security -> Automation**.
-3. Allow your terminal app (Terminal/iTerm) to control **Music**.
-4. Re-run `cargo run -- doctor`.
+---
+
+## Build From Source
+
+```bash
+git clone https://github.com/vincenzomaritato/presence-bridge.git
+cd presence-bridge
+cargo build --release
+```
+
+Binary output:
+
+- macOS/Linux: `target/release/presence-bridge`
+- Windows: `target/release/presence-bridge.exe`
+
+---
 
 ## Troubleshooting
 
-- Discord closed: process keeps running and retries with exponential backoff.
+- Discord closed: daemon stays alive and retries with backoff.
 - No media detected:
-  - macOS: verify Music.app is running and playing.
-  - Windows: check active GSMTC session (media app supports system media integration).
-  - Linux: check MPRIS player is active (`playerctl -l`).
-- Bad config: run `cargo run -- config init` and edit generated file.
+  - macOS: verify Music.app is running and playing
+  - Windows: verify your player exposes media session
+  - Linux: verify MPRIS player exists (`playerctl -l`)
+- Invalid config: run `cargo run -- config init` again.
 
-## Development
+macOS Apple Music permission:
 
-```bash
-cargo fmt
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
-```
+1. Open **System Settings**
+2. Go to **Privacy & Security -> Automation**
+3. Allow Terminal/iTerm to control **Music**
 
-## Releases
+---
 
-- CI builds and tests on macOS, Windows, Linux (`.github/workflows/ci.yml`).
-- Tagging `v*` triggers packaged release artifacts + SHA256 checksums (`.github/workflows/release.yml`).
-- Linux release also includes `.deb` and `.rpm` artifacts.
+## Open Source Quality
 
-## Package Channels
+- Unit tests (diff engine, URL builder)
+- CI matrix (macOS, Windows, Linux)
+- Release artifacts + SHA256 checksums
+- Linux packaging (`.deb`, `.rpm`)
 
-- Homebrew template formula: `packaging/homebrew/presence-bridge.rb.tmpl`
-- Scoop template manifest: `packaging/scoop/presence-bridge.json.tmpl`
-- Linux systemd unit: `packaging/linux/presence-bridge.service`
-- Automatic package index publish workflow: `.github/workflows/publish-package-indexes.yml`
+Workflows:
 
-Generate Homebrew formula from release checksum:
+- `/Users/vmaritato/Desktop/Open Source/presence-bridge/.github/workflows/ci.yml`
+- `/Users/vmaritato/Desktop/Open Source/presence-bridge/.github/workflows/release.yml`
 
-```bash
-scripts/update-homebrew-formula.sh 0.1.0 <sha256-of-presence-bridge-macos-x86_64.tar.gz>
-```
+---
 
-Generate Scoop manifest from release checksum:
+## Project Links
 
-```bash
-scripts/update-scoop-manifest.sh 0.1.0 <sha256-of-presence-bridge-windows-x86_64.zip>
-```
+- Issues: [github.com/vincenzomaritato/presence-bridge/issues](https://github.com/vincenzomaritato/presence-bridge/issues)
+- Releases: [github.com/vincenzomaritato/presence-bridge/releases](https://github.com/vincenzomaritato/presence-bridge/releases)
+- Security: `/Users/vmaritato/Desktop/Open Source/presence-bridge/SECURITY.md`
+- Contributing: `/Users/vmaritato/Desktop/Open Source/presence-bridge/CONTRIBUTING.md`
+- Code of Conduct: `/Users/vmaritato/Desktop/Open Source/presence-bridge/CODE_OF_CONDUCT.md`
 
-Automate Homebrew/Scoop updates after each GitHub Release:
-
-1. Create a Homebrew tap repo (for example `vincenzomaritato/homebrew-tap`) and/or a Scoop bucket repo (for example `vincenzomaritato/scoop-bucket`).
-2. Add repository secrets in this project:
-   - `PACKAGE_REPOS_TOKEN`: PAT with write access to the tap/bucket repos.
-   - `HOMEBREW_TAP_REPO`: `owner/repo` of tap repository.
-   - `SCOOP_BUCKET_REPO`: `owner/repo` of Scoop bucket repository.
-3. Publish a release (`v*` tag). The workflow will:
-   - Read checksums from release assets.
-   - Render formula/manifest from templates.
-   - Commit and push updates to tap/bucket repos.
+---
 
 ## License
 
-Apache-2.0. See `LICENSE`.
+Apache-2.0. See `/Users/vmaritato/Desktop/Open Source/presence-bridge/LICENSE`.
+
+---
+
+<p align="center">
+  <sub>
+    Crafted with focus on performance, reliability, and clean developer experience.
+  </sub>
+  <br/>
+  <sub>
+    Copyright (c) presence-bridge contributors.
+  </sub>
+</p>
